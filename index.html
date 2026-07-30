@@ -3,60 +3,238 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quick Quote Generator</title>
+  <title>Cyber Terminal v2.0</title>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #0d1117;
+      color: #00ff66;
+      font-family: 'Courier New', Courier, monospace;
+      height: 100vh;
+      overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #333;
     }
-    .card {
-      background: white;
-      padding: 2.5rem;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      text-align: center;
-      max-width: 400px;
+
+    /* Background Canvas */
+    #matrixCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      opacity: 0.25;
+    }
+
+    /* Glassmorphism Terminal Window */
+    .terminal-container {
+      position: relative;
+      z-index: 2;
       width: 90%;
+      max-width: 800px;
+      height: 80vh;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 255, 102, 0.3);
+      border-radius: 10px;
+      box-shadow: 0 0 30px rgba(0, 255, 102, 0.15);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
-    h2 { margin-top: 0; color: #4f46e5; }
-    p { font-size: 1.1rem; line-height: 1.5; min-height: 60px; display: flex; align-items: center; justify-content: center; }
-    button {
-      background: #4f46e5;
-      color: white;
+
+    .terminal-header {
+      background: rgba(0, 255, 102, 0.05);
+      padding: 10px 15px;
+      border-bottom: 1px solid rgba(0, 255, 102, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .btn-red { background: #ff5f56; }
+    .btn-yellow { background: #ffbd2e; }
+    .btn-green { background: #27c93f; }
+
+    .terminal-title {
+      margin-left: auto;
+      font-size: 0.85rem;
+      opacity: 0.6;
+    }
+
+    .terminal-body {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .output-line {
+      line-height: 1.5;
+      word-break: break-all;
+    }
+
+    .input-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 5px;
+    }
+
+    .prompt {
+      color: #00ff66;
+      font-weight: bold;
+    }
+
+    input {
+      background: transparent;
       border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      cursor: pointer;
+      outline: none;
+      color: #00ff66;
+      font-family: inherit;
       font-size: 1rem;
-      font-weight: 600;
+      width: 100%;
     }
-    button:hover { background: #4338ca; }
+
+    .system-text { color: #8b949e; }
+    .error-text { color: #ff5f56; }
+    .accent-text { color: #58a6ff; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>✨ Quick Quote</h2>
-    <p id="quote">Click the button to get inspired!</p>
-    <button onclick="generateQuote()">New Quote</button>
+
+  <!-- Background Matrix Rain Engine -->
+  <canvas id="matrixCanvas"></canvas>
+
+  <!-- Interactive Terminal UI -->
+  <div class="terminal-container">
+    <div class="terminal-header">
+      <div class="btn btn-red"></div>
+      <div class="btn btn-yellow"></div>
+      <div class="btn btn-green"></div>
+      <span class="terminal-title">guest@cyber-shell:~</span>
+    </div>
+
+    <div class="terminal-body" id="terminalBody">
+      <div class="output-line system-text">System initialized. Type <span class="accent-text">'help'</span> for available commands.</div>
+      
+      <div class="input-line">
+        <span class="prompt">&gt;</span>
+        <input type="text" id="cmdInput" autofocus placeholder="Type command..." autocomplete="off">
+      </div>
+    </div>
   </div>
 
   <script>
-    const quotes = [
-      "The best time to plant a tree was 20 years ago. The second best time is now.",
-      "Your time is limited, so don't waste it living someone else's life.",
-      "Action is the foundational key to all success.",
-      "Everything you’ve ever wanted is on the other side of fear."
-    ];
+    /* ===================================================
+       1. MATRIX RAIN ENGINE (CANVAS GRAPHICS)
+       =================================================== */
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
 
-    function generateQuote() {
-      const randomIndex = Math.floor(Math.random() * quotes.length);
-      document.getElementById('quote').innerText = quotes[randomIndex];
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+    const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const alphabet = katakana + latin;
+
+    const fontSize = 16;
+    let columns = Math.floor(canvas.width / fontSize);
+    let rainDrops = Array(columns).fill(1);
+
+    function drawMatrix() {
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#0F0';
+      ctx.font = fontSize + 'px monospace';
+
+      for (let i = 0; i < rainDrops.length; i++) {
+        const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+        ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+        if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          rainDrops[i] = 0;
+        }
+        rainDrops[i]++;
+      }
+    }
+    setInterval(drawMatrix, 30);
+
+    /* ===================================================
+       2. INTERACTIVE TERMINAL LOGIC
+       =================================================== */
+    const cmdInput = document.getElementById('cmdInput');
+    const terminalBody = document.getElementById('terminalBody');
+
+    const commands = {
+      help: 'Available commands: <span class="accent-text">about, skills, clear, matrix, quote</span>',
+      about: 'CyberShell v2.0 - Built with pure HTML5 Canvas and Vanilla JS for high performance.',
+      skills: 'Stack: JavaScript (ES6+), HTML5 Canvas, CSS Glassmorphism, WebGL/Three.js ready.',
+      quote: () => {
+        const q = [
+          "Code is like humor. When you have to explain it, it’s bad.",
+          "First, solve the problem. Then, write the code.",
+          "Simplicity is prerequisite for reliability."
+        ];
+        return q[Math.floor(Math.random() * q.length)];
+      },
+      matrix: 'Matrix speed optimized to 30FPS stream.'
+    };
+
+    cmdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const inputVal = cmdInput.value.trim().toLowerCase();
+        if (!inputVal) return;
+
+        // Print entered command
+        appendLine(`&gt; ${inputVal}`, 'prompt');
+
+        // Process Command
+        if (inputVal === 'clear') {
+          clearTerminal();
+        } else if (commands[inputVal]) {
+          const res = typeof commands[inputVal] === 'function' ? commands[inputVal]() : commands[inputVal];
+          appendLine(res, 'output-line');
+        } else {
+          appendLine(`Command not found: '${inputVal}'. Type <span class="accent-text">'help'</span>.`, 'error-text');
+        }
+
+        cmdInput.value = '';
+        terminalBody.scrollTop = terminalBody.scrollHeight;
+      }
+    });
+
+    function appendLine(text, className) {
+      const line = document.createElement('div');
+      line.className = `output-line ${className}`;
+      line.innerHTML = text;
+      
+      const inputRow = cmdInput.parentElement;
+      terminalBody.insertBefore(line, inputRow);
+    }
+
+    function clearTerminal() {
+      const lines = terminalBody.querySelectorAll('.output-line');
+      lines.forEach(line => line.remove());
     }
   </script>
 </body>
